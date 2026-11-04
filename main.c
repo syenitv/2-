@@ -91,15 +91,49 @@ void parse_puzzle(char* line, Puzzle* p) {
         }
         ptr = strstr(ptr, temp) + strlen(temp);
     }
-
-    int seen[26] = { 0 };
-    num_letters = 0;
+    int freq[26] = { 0 };
     for (int i = 0; i < p->word_count; i++)
-        for (int j = 0; p->words[i][j]; j++) seen[p->words[i][j] - 'A'] = 1;
-    for (int j = 0; p->result[j]; j++) seen[p->result[j] - 'A'] = 1;
+        for (int j = 0; p->words[i][j]; j++) freq[p->words[i][j] - 'A']++;
+    for (int j = 0; p->result[j]; j++) freq[p->result[j] - 'A']++;
+    num_letters = 0;
     for (int i = 0; i < 26; i++) {
-        if (seen[i]) unique_letters[num_letters++] = (char)(i + 'A');
+        if (freq[i] > 0) unique_letters[num_letters++] = (char)(i + 'A');
     }
+
+    for (int i = 0; i < num_letters - 1; i++) {
+        for (int j = 0; j < num_letters - i - 1; j++) {
+            if (freq[unique_letters[j] - 'A'] < freq[unique_letters[j + 1] - 'A']) {
+                char temp_char = unique_letters[j];
+                unique_letters[j] = unique_letters[j + 1];
+                unique_letters[j + 1] = temp_char;
+            }
+        }
+    }
+}
+
+int solve_and_format_string(const char* input_str, char* output_str) {
+    char line[256];
+    strcpy(line, input_str);
+    Puzzle p;
+    parse_puzzle(line, &p);
+    for (int i = 0; i < 26; i++) letter_values[i] = -1;
+    for (int i = 0; i < 10; i++) used_digits[i] = 0;
+    if (solve(&p, 0)) {
+        output_str[0] = '\0';
+        char temp[50];
+        for (int i = 0; i < p.word_count; i++) {
+            sprintf(temp, "%lld ", get_word_value(p.words[i]));
+            strcat(output_str, temp);
+            if (i < p.word_count - 1) {
+                sprintf(temp, "%c ", p.op);
+                strcat(output_str, temp);
+            }
+        }
+        sprintf(temp, "= %lld", get_word_value(p.result));
+        strcat(output_str, temp);
+        return 1;
+    }
+    return 0;
 }
 
 int main() {
@@ -108,25 +142,17 @@ int main() {
         printf("File not found!\n");
         return 1;
     }
-
     char line[256];
+    char result_str[512];
     while (fgets(line, sizeof(line), file)) {
         line[strcspn(line, "\n")] = 0;
         if (strlen(line) == 0) continue;
-        Puzzle p;
-        parse_puzzle(line, &p);
-        printf("\nPuzzle: %s\n", line);
-        for (int i = 0; i < 26; i++) letter_values[i] = -1;
-        for (int i = 0; i < 10; i++) used_digits[i] = 0;
+        printf("\n%s\n", line);
         clock_t start = clock();
-        if (solve(&p, 0)) {
+        if (solve_and_format_string(line, result_str)) {
             clock_t end = clock();
             double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
-            for (int i = 0; i < p.word_count; i++) {
-                printf("%lld ", get_word_value(p.words[i]));
-                if (i < p.word_count - 1) printf("%c ", p.op);
-            }
-            printf("= %lld\n", get_word_value(p.result));
+            printf("Solution: %s\n", result_str);
             printf("Time: %f seconds\n", time_spent);
         }
         else {
