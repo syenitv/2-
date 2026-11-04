@@ -47,12 +47,21 @@ int is_valid(Puzzle* p) {
     return left_side == right_side;
 }
 
+int is_leading_char(char c, Puzzle* p) {
+    for (int i = 0; i < p->word_count; i++) {
+        if (p->words[i][0] == c) return 1;
+    }
+    if (p->result[0] == c) return 1;
+    return 0;
+}
+
 int solve(Puzzle* p, int idx) {
     if (idx == num_letters) {
         return is_valid(p);
     }
     char c = unique_letters[idx];
-    for (int d = 0; d <= 9; d++) {
+    int start_digit = is_leading_char(c, p) ? 1 : 0;
+    for (int d = start_digit; d <= 9; d++) {
         if (!used_digits[d]) {
             letter_values[c - 'A'] = d;
             used_digits[d] = 1;
@@ -106,7 +115,7 @@ int main() {
         if (strlen(line) == 0) continue;
         Puzzle p;
         parse_puzzle(line, &p);
-        printf("\n%s\n", line);
+        printf("\nPuzzle: %s\n", line);
         for (int i = 0; i < 26; i++) letter_values[i] = -1;
         for (int i = 0; i < 10; i++) used_digits[i] = 0;
         clock_t start = clock();
