@@ -169,22 +169,26 @@ int main() {
     }
     char line[256];
     char result_str[512];
+    double total_time = 0.0;
     while (fgets(line, sizeof(line), file)) {
         line[strcspn(line, "\n")] = 0;
         if (strlen(line) == 0) continue;
-
         printf("\n%s\n", line);
         clock_t start = clock();
-        if (solve_and_format_string(line, result_str)) {
-            clock_t end = clock();
-            double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+        int is_solved = solve_and_format_string(line, result_str);
+        clock_t end = clock();
+        double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+        total_time += time_spent;
+        if (is_solved) {
             printf("Solution: %s\n", result_str);
             printf("Time: %f seconds\n", time_spent);
         }
         else {
             printf("No solution found.\n");
+            printf("Time: %f seconds\n", time_spent);
         }
     }
     fclose(file);
+    printf("\nTotal time: %f seconds\n", total_time);
     return 0;
 }
