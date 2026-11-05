@@ -18,6 +18,7 @@ char unique_letters[10];
 int num_letters = 0;
 int letter_values[26];
 int used_digits[10];
+int letter_weights[26];
 
 long long get_word_value(const char* word) {
     long long val = 0;
@@ -32,14 +33,20 @@ int is_valid(Puzzle* p) {
         if (letter_values[p->words[i][0] - 'A'] == 0) return 0;
     }
     if (letter_values[p->result[0] - 'A'] == 0) return 0;
+    if (p->op == '+' || p->op == '-') {
+        long long sum = 0;
+        for (int i = 0; i < 26; i++) {
+            sum += letter_values[i] * letter_weights[i];
+        }
+        return sum == 0;
+    }
     long long left_side = get_word_value(p->words[0]);
     for (int i = 1; i < p->word_count; i++) {
         long long val = get_word_value(p->words[i]);
-        if (p->op == '+') left_side += val;
-        else if (p->op == '-') left_side -= val;
-        else if (p->op == '*') left_side *= val;
+        if (p->op == '*') left_side *= val;
         else if (p->op == '/') {
             if (val == 0) return 0;
+            if (left_side % val != 0) return 0;
             left_side /= val;
         }
     }
@@ -91,6 +98,25 @@ void parse_puzzle(char* line, Puzzle* p) {
         }
         ptr = strstr(ptr, temp) + strlen(temp);
     }
+    for (int i = 0; i < 26; i++) letter_weights[i] = 0;
+    if (p->op == '+' || p->op == '-') {
+        int sign = (p->op == '+') ? 1 : -1;
+
+        for (int i = 0; i < p->word_count; i++) {
+            int len = strlen(p->words[i]);
+            int multiplier = sign;
+            for (int j = len - 1; j >= 0; j--) {
+                letter_weights[p->words[i][j] - 'A'] += multiplier;
+                multiplier *= 10;
+            }
+        }
+        int res_len = strlen(p->result);
+        int res_multiplier = -1;
+        for (int j = res_len - 1; j >= 0; j--) {
+            letter_weights[p->result[j] - 'A'] += res_multiplier;
+            res_multiplier *= 10;
+        }
+    }
     int freq[26] = { 0 };
     for (int i = 0; i < p->word_count; i++)
         for (int j = 0; p->words[i][j]; j++) freq[p->words[i][j] - 'A']++;
@@ -99,7 +125,6 @@ void parse_puzzle(char* line, Puzzle* p) {
     for (int i = 0; i < 26; i++) {
         if (freq[i] > 0) unique_letters[num_letters++] = (char)(i + 'A');
     }
-
     for (int i = 0; i < num_letters - 1; i++) {
         for (int j = 0; j < num_letters - i - 1; j++) {
             if (freq[unique_letters[j] - 'A'] < freq[unique_letters[j + 1] - 'A']) {
@@ -147,6 +172,7 @@ int main() {
     while (fgets(line, sizeof(line), file)) {
         line[strcspn(line, "\n")] = 0;
         if (strlen(line) == 0) continue;
+
         printf("\n%s\n", line);
         clock_t start = clock();
         if (solve_and_format_string(line, result_str)) {
